@@ -108,3 +108,78 @@ if __name__ == "__main__":
     print("Training (state_space) set size:", state_space_train.shape)
     print("Test (images) set size:", images_test.shape)
     print("Test (state_space) set size:", state_space_test.shape)
+
+    train_dataset = CustomDataset(images_train, state_space_train)
+    test_dataset = CustomDataset(images_test, state_space_test)
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+    model = Pixel2StateNet().to(DEVICE)
+    loss_function = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    train_losses, val_losses = [], []
+    train_mae, val_mae = [], []
+
+    for epoch in range(NUM_EPOCHS):
+        model.train()
+        epoch_loss_train, epoch_mae_train = 0, 0
+
+        # Training loop 
+        for images, states in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{NUM_EPOCHS}"):
+            images, states = images.to(DEVICE), states.to(DEVICE)
+
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = loss_function(outputs, states)
+            loss.backward()
+            optimizer.step()
+
+            # Calculating metrics 
+            epoch_loss_train += loss.item() * images.size(0)
+            mae = torch.abs(outputs - states).mean().item()
+            epoch_mae_train += mae * images.size(0)
+
+        train_losses.append(epoch_loss_train / len(train_loader.dataset))
+        train_mae.append(epoch_mae_train / len(train_loader.dataset))
+
+        # Validation 
+        model.eval()
+        epoch_loss_val, epoch_mae_val = 0, 0
+
+        with torch.no_grad():
+            for images, states in tqdm(test_loader, desc=f"Validation Epoch {epoch+1}/{NUM_EPOCHS}"):
+                images, states = images.to(DEVICE), states.to(DEVICE)
+                outputs = model(images)
+                loss = loss_function(outputs, states)
+
+                # Calculating metrics 
+                epoch_loss_val += loss.item() * images.size(0)
+                mae = torch.abs(outputs - states).mean().item()
+                epoch_mae_val += mae * images.size(0)
+        
+        val_losses.append(epoch_loss_val / len(test_loader.dataset))
+        val_mae.append(epoch_mae_val / len(test_loader))
+
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}")
+
+    # Optionally save the model
+    torch.save(model.state_dict(), "pixel2state_model.pth")
+
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.plot(range(NUM_EPOCHS), train_losses, label='Training Loss')
+    plt.plot(range(NUM_EPOCHS), val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    plt.plot(range(NUM_EPOCHS), train_mae, label='Training MAE')
+    plt.plot(range(NUM_EPOCHS), val_mae, label='Validation MAE')
+    plt.xlabel('Epoch')
+    plt.ylabel('MAE')
+    plt.legend()
+
+    plt.show()
