@@ -45,11 +45,16 @@ def save_data(frames, observations, filename_and_location='dataset/proprio_pixel
     print(f"Data saved to {filename_and_location}")
 
 
-def generate_episode(seed, domain_name="fish", task_name="swim", camera_view_height=64, camera_view_width=64):
+def generate_episode(seed, frames, observations, domain_name="fish", task_name="swim", 
+                     camera_view_height=64, camera_view_width=64):
+    '''
+    Runs a full episode of a domain and task to generate data. Note that it takes in 
+    a frames and observations array and it appends to that. 
+    '''
     random_state = np.random.RandomState(seed)    # Setting the seed
     env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
-    frames = []
-    observations = []
+    # frames = []
+    # observations = []
 
     spec = env.action_spec()
     time_step = env.reset()
@@ -73,7 +78,7 @@ def generate_episode(seed, domain_name="fish", task_name="swim", camera_view_hei
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 500
+    num_episodes = 1
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
@@ -89,7 +94,7 @@ if __name__ == '__main__':
 
     for seed in tqdm(seeds, total=(len(seeds))):
         print(f"Generating dataset using seed {seed}")
-        generate_episode(seed, domain_name, task_name, camera_view_height, camera_view_width)
+        generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, camera_view_height, camera_view_width)
 
     frames_dataset_nparray = np.array(frames_dataset)
     observations_dataset_nparray = np.array(observations_dataset)
