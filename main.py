@@ -50,8 +50,6 @@ if __name__ == '__main__':
     random_state = np.random.RandomState(seed)    # Setting the seed 
     env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
 
-
-    duration = 4  # Seconds
     frames = []
     ticks = []
     rewards = []
@@ -60,15 +58,15 @@ if __name__ == '__main__':
     spec = env.action_spec()
     time_step = env.reset()
 
-    while env.physics.data.time < duration:
+    while not(time_step.last()):
 
         action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
         time_step = env.step(action)
 
-        camera0 = env.physics.render(camera_id=0, height=200, width=200)
-        camera1 = env.physics.render(camera_id=1, height=200, width=200)
-        camera2 = env.physics.render(camera_id=2, height=200, width=200)
-        camera3 = env.physics.render(camera_id=3, height=200, width=200)
+        camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
+        camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
+        camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
+        camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
 
         top_row = np.concatenate((camera0, camera1), axis=1)
         bottom_row = np.concatenate((camera2, camera3), axis=1)
