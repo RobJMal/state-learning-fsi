@@ -1,5 +1,4 @@
 import os 
-import copy 
 
 # Sets the graphics library for MuJoCo, need to set this 
 # before importing dm_control 
@@ -12,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 from datetime import datetime
 from tqdm import tqdm
+import copy 
 
 # For creating video 
 import matplotlib.animation as animation
@@ -45,8 +45,35 @@ def save_data(frames, observations, filename_and_location='dataset/proprio_pixel
     print(f"Data saved to {filename_and_location}")
 
 
+def generate_episode(seed, domain_name="fish", task_name="swim", camera_view_height=64, camera_view_width=64):
+    random_state = np.random.RandomState(seed)    # Setting the seed
+    env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
+    frames = []
+    observations = []
+
+    spec = env.action_spec()
+    time_step = env.reset()
+
+    while not time_step.last():
+        action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
+        time_step = env.step(action)
+
+        camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
+        camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
+        camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
+        camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
+
+        top_row = np.concatenate((camera0, camera1), axis=1)
+        bottom_row = np.concatenate((camera2, camera3), axis=1)
+        camera_obs = np.concatenate((top_row, bottom_row), axis=0)
+
+        frames.append(camera_obs)
+        observations.append(copy.deepcopy(time_step.observation))
+
+    return frames, observations
+
 if __name__ == '__main__':
-    num_episodes = 1000
+    num_episodes = 500
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
@@ -62,33 +89,7 @@ if __name__ == '__main__':
 
     for seed in tqdm(seeds, total=(len(seeds))):
         print(f"Generating dataset using seed {seed}")
-        random_state = np.random.RandomState(seed)    # Setting the seed 
-        env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
-        counter = 0
-
-        spec = env.action_spec()
-        time_step = env.reset()
-
-        while not(time_step.last()):
-            action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
-            time_step = env.step(action)
-
-            camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
-            camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
-            camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
-            camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
-
-            top_row = np.concatenate((camera0, camera1), axis=1)
-            bottom_row = np.concatenate((camera2, camera3), axis=1)
-            camera_obs = np.concatenate((top_row, bottom_row), axis=0)
-
-            frames_dataset.append(camera_obs)
-            observations_dataset.append(copy.deepcopy(time_step.observation))
-            counter += 1
-
-        print(f"Length of episode: ", counter)
-        print(f"Finished dataset using seed {seed}")
-        print("")
+        generate_episode(seed, domain_name, task_name, camera_view_height, camera_view_width)
 
     frames_dataset_nparray = np.array(frames_dataset)
     observations_dataset_nparray = np.array(observations_dataset)
