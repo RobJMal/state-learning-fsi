@@ -46,6 +46,7 @@ def save_data(frames, observations, filename_and_location='dataset/proprio_pixel
 
 
 if __name__ == '__main__':
+    num_episodes = 1000
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
@@ -53,7 +54,7 @@ if __name__ == '__main__':
 
     domain_name = "fish"
     task_name = "swim"
-    seeds = [i for i in range(100)]
+    seeds = [i for i in range(num_episodes)]
     camera_view_height, camera_view_width = 64, 64 
 
     frames_dataset = []
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     print(f"Length of observations_dataset: {len(observations_dataset)}")
 
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dataset_filename_and_location = f"dataset/augmented_camera_view/proprio_pixel_dataset_{current_datetime_str}.npz"
+    dataset_filename_and_location = f"dataset/augmented_camera_view/proprio_pixel_dataset-{num_episodes}k_{current_datetime_str}.npz"
 
     save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_filename_and_location)
 
