@@ -71,6 +71,19 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
 
     return dataset_df
 
+class CustomDataset(torch.utils.data.Dataset):
+    def __init__(self, images, state_spaces):
+        self.images = images
+        self.state_spaces = state_spaces
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        state_space = self.state_spaces[idx]
+        return torch.tensor(image, dtype=torch.float32), torch.tensor(state_space, dtype=torch.float32)
+
 
 if __name__ == "__main__":
     set_seed(seed=SEED)
