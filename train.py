@@ -57,7 +57,7 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     '''
     Loads dataset from .npz file. Returns it as a pandas dataframe. 
     '''
-    print("Loading dataset")
+    print(f"Loading dataset {dataset_path_and_file}")
     dataset = np.load(dataset_path_and_file, allow_pickle=True)
     dataset_images = dataset['frames']
     dataset_proprios = dataset['observations']
@@ -228,3 +228,8 @@ if __name__ == "__main__":
     metrics_plot_filename = f"pixel2state_model_metrics_{current_datetime_str}.png"
     metrics_plot_path = os.path.join(results_directory, metrics_plot_filename)
     plt.savefig(metrics_plot_path)
+
+    metadata_filename = f"training_metadata_{current_datetime_str}.json"
+    metadata_path = os.path.join(results_directory, metadata_filename)
+    with open(metadata_path, "w") as f:
+        json.dump(metadata, f, indent=4)
