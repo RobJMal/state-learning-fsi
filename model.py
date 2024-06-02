@@ -2,16 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# Encoder parameters 
-depth = 32
-stride = 2 
-kernel_size = 4
-activation = "ReLU"
-observation_shape = (3, 128, 128)
 
 class Pixel2StateNet(nn.Module):
-    def __init__(self, observation_shape, config):
+    def __init__(self, observation_shape=(3, 128, 128)):
         super().__init__()
+
+        # Encoder parameters (from DreamerV1)
+        depth = 32
+        stride = 2 
+        kernel_size = 4
+        activation = "ReLU"
 
         activation = getattr(nn, activation)()
         self.observation_shape = observation_shape
