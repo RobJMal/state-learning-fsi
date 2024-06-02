@@ -78,7 +78,7 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 1
+    num_episodes = 500
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
