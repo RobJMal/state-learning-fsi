@@ -11,6 +11,7 @@ from dm_control import suite
 import matplotlib.pyplot as plt
 import numpy as np 
 from datetime import datetime
+from tqdm import tqdm
 
 # For creating video 
 import matplotlib.animation as animation
@@ -52,13 +53,13 @@ if __name__ == '__main__':
 
     domain_name = "fish"
     task_name = "swim"
-    seeds = [0, 42, 69, 37, 15, 92, 64, 32, 77, 31]
+    seeds = [i for i in range(100)]
     camera_view_height, camera_view_width = 64, 64 
 
     frames_dataset = []
     observations_dataset = []
 
-    for seed in seeds:
+    for seed in tqdm(seeds, total=(len(seeds))):
         print(f"Generating dataset using seed {seed}")
         random_state = np.random.RandomState(seed)    # Setting the seed 
         env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
