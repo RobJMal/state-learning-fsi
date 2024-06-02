@@ -10,7 +10,7 @@ os.environ['MUJOCO_EGL_DEVICE_ID'] = '0'    # Connecting to GPU
 from dm_control import suite 
 import matplotlib.pyplot as plt
 import numpy as np 
-
+from datetime import datetime
 
 # For creating video 
 import matplotlib.animation as animation
@@ -36,6 +36,14 @@ def save_video(frames, filename='media/output.mp4', framerate=30):
     print("Finished creating video")
 
 
+def save_data(frames, observations, filename_and_location='dataset/proprio_pixel_dataset-0.npz'):
+    '''
+    Saves frames and observations to a compressed .npz file
+    '''
+    np.savez_compressed(filename_and_location, frames=frames, observations=observations)
+    print(f"Data saved to {filename_and_location}")
+
+
 if __name__ == '__main__':
 
     # Ensure the directories exists
@@ -44,39 +52,50 @@ if __name__ == '__main__':
 
     domain_name = "fish"
     task_name = "swim"
-    seed = 42
+    seeds = [0, 42, 69, 37, 15, 92, 64, 32, 77, 31]
     camera_view_height, camera_view_width = 64, 64 
 
-    random_state = np.random.RandomState(seed)    # Setting the seed 
-    env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
+    frames_dataset = []
+    observations_dataset = []
 
-    frames = []
-    ticks = []
-    rewards = []
-    observations = []
+    for seed in seeds:
+        print(f"Generating dataset using seed {seed}")
+        random_state = np.random.RandomState(seed)    # Setting the seed 
+        env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
+        counter = 0
 
-    spec = env.action_spec()
-    time_step = env.reset()
+        spec = env.action_spec()
+        time_step = env.reset()
 
-    while not(time_step.last()):
+        while not(time_step.last()):
+            action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
+            time_step = env.step(action)
 
-        action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
-        time_step = env.step(action)
+            camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
+            camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
+            camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
+            camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
 
-        camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
-        camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
-        camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
-        camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
+            top_row = np.concatenate((camera0, camera1), axis=1)
+            bottom_row = np.concatenate((camera2, camera3), axis=1)
+            camera_obs = np.concatenate((top_row, bottom_row), axis=0)
 
-        top_row = np.concatenate((camera0, camera1), axis=1)
-        bottom_row = np.concatenate((camera2, camera3), axis=1)
-        camera_obs = np.concatenate((top_row, bottom_row), axis=0)
+            frames_dataset.append(camera_obs)
+            observations_dataset.append(copy.deepcopy(time_step.observation))
+            counter += 1
 
-        frames.append(camera_obs)
-        rewards.append(time_step.reward)
-        observations.append(copy.deepcopy(time_step.observation))
-        ticks.append(env.physics.data.time)
+        print(f"Length of episode: ", counter)
+        print(f"Finished dataset using seed {seed}")
+        print("")
 
-    output_policy_video_filename = f'media/{domain_name}-{task_name}_result.mp4'
-    save_video(frames=frames, filename=output_policy_video_filename, framerate=30)
+    frames_dataset_nparray = np.array(frames_dataset)
+    observations_dataset_nparray = np.array(observations_dataset)
+
+    print(f"Length of frames_dataset: {len(frames_dataset)}")
+    print(f"Length of observations_dataset: {len(observations_dataset)}")
+
+    current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    dataset_filename_and_location = f"dataset/augmented_camera_view/proprio_pixel_dataset_{current_datetime_str}.npz"
+
+    save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_filename_and_location)
 
