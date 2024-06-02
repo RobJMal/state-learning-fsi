@@ -6,14 +6,18 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import random
+import json
+from torchsummary import summary
+import contextlib
+from datetime import datetime
 
 from model import Pixel2StateNet
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device: ", DEVICE)
 BATCH_SIZE = 32  
-NUM_EPOCHS = 20
-SEED = 42
+NUM_EPOCHS = 2
+SEED = 0
 
 
 def set_seed(seed) -> None:
@@ -86,11 +90,18 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
+    # For logging and data collection purposes 
+    current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    results_directory = f'results/pixel2statenet_training_{current_datetime_str}'
+    os.makedirs(results_directory, exist_ok=True)
+    
     set_seed(seed=SEED)
 
     # Loading data
-    dataset_path_and_file = "dataset/augmented_camera_view/proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz" 
-    dataset_df = load_datset(dataset_path_and_file)
+    dataset_directory = "dataset/augmented_camera_view" 
+    dataset_filename = "proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz"
+    dataset_path = os.path.join(dataset_directory, dataset_filename)
+    dataset_df = load_datset(dataset_path)
     
     # Creating training and test sets
     images_train, images_test, state_space_train, state_space_test = train_test_split(dataset_df['image'].tolist(),
@@ -115,7 +126,30 @@ if __name__ == "__main__":
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
+    metadata = {
+        'datetime': current_datetime_str,
+        'dataset': dataset_filename,
+        'device': str(DEVICE),
+        'batch_size': BATCH_SIZE,
+        'num_epochs': NUM_EPOCHS,
+        'seed': SEED,
+        'optimizer': 'Adam',  # Change this if using SGD
+        'learning_rate': 1e-4,
+        'training_losses': [],
+        'validation_losses': [],
+        'training_mae': [],
+        'validation_mae': [],
+    }
+
     model = Pixel2StateNet().to(DEVICE)
+
+    model_summary_filename = f"model_summary_{current_datetime_str}.txt"
+    model_summary_path = os.path.join(results_directory, model_summary_filename)
+    with open(model_summary_path, "w") as f:
+        with contextlib.redirect_stdout(f):
+            summary(model, input_size=(3, 128, 128))
+    print(f"Model information saved to {model_summary_path}")
+
     loss_function = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -162,10 +196,18 @@ if __name__ == "__main__":
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}")
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}, Training MAE: {train_mae[-1]:.4f}, Validation MAE: {val_mae[-1]:.4f}")
+
+        # Update metadata
+        metadata['training_losses'].append(train_losses[-1])
+        metadata['validation_losses'].append(val_losses[-1])
+        metadata['training_mae'].append(train_mae[-1])
+        metadata['validation_mae'].append(val_mae[-1])
 
     # Optionally save the model
-    torch.save(model.state_dict(), "pixel2state_model.pth")
+    model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
+    model_path = os.path.join(results_directory, model_filename)
+    torch.save(model.state_dict(), model_path)
 
     plt.figure()
     plt.subplot(2, 1, 1)
@@ -182,4 +224,7 @@ if __name__ == "__main__":
     plt.ylabel('MAE')
     plt.legend()
 
-    plt.show()
+    plt.tight_layout()
+    metrics_plot_filename = f"pixel2state_model_metrics_{current_datetime_str}.png"
+    metrics_plot_path = os.path.join(results_directory, metrics_plot_filename)
+    plt.savefig(metrics_plot_path)
