@@ -58,11 +58,7 @@ class Pixel2StateNet(nn.Module):
 
         # Network for mapping between encoded pixel input to state
         self.mlp_network = nn.Sequential(
-            nn.Linear(feature_map_size, 4092),
-            nn.BatchNorm1d(4092),
-            nn.Dropout(0.1),
-            activation,
-            nn.Linear(4092, 1024),
+            nn.Linear(feature_map_size, 1024),
             nn.BatchNorm1d(1024),
             nn.Dropout(0.1),
             activation,
@@ -70,9 +66,12 @@ class Pixel2StateNet(nn.Module):
             nn.BatchNorm1d(512),
             nn.Dropout(0.1),
             activation,
-            nn.Linear(512, num_proprio_states),
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.1),
+            activation,
+            nn.Linear(256, num_proprio_states),
         )
-
 
     def forward(self, x):
         x = self.encoder_network_forward(self.encoder_network, x, input_shape=self.observation_shape)
@@ -80,7 +79,6 @@ class Pixel2StateNet(nn.Module):
         x = self.mlp_network(x)
 
         return x
-
 
     def encoder_network_forward(self, network, x, y=None, input_shape=(-1,), output_shape=(-1,)):
         batch_with_horizon_shape = x.shape[: -len(input_shape)]
