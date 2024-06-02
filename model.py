@@ -75,7 +75,7 @@ class Pixel2StateNet(nn.Module):
 
 
     def forward(self, x):
-        x = self.encoder_network_forward(self.network, x, input_shape=self.observation_shape)
+        x = self.encoder_network_forward(self.encoder_network, x, input_shape=self.observation_shape)
         x = torch.flatten(x, start_dim=1)
         x = self.mlp_network(x)
 
