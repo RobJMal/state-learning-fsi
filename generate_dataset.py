@@ -53,8 +53,6 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     '''
     random_state = np.random.RandomState(seed)    # Setting the seed
     env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
-    # frames = []
-    # observations = []
 
     spec = env.action_spec()
     time_step = env.reset()
@@ -78,32 +76,43 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 500
+    num_episodes = 1000
+    batch_size = 50
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
     os.makedirs("dataset", exist_ok=True)
+    os.makedirs("dataset/augmented_camera_view", exist_ok=True)
 
     domain_name = "fish"
     task_name = "swim"
     seeds = [i for i in range(num_episodes)]
     camera_view_height, camera_view_width = 64, 64 
 
-    frames_dataset = []
-    observations_dataset = []
-
-    for seed in tqdm(seeds, total=(len(seeds))):
-        print(f"Generating dataset using seed {seed}")
-        generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, camera_view_height, camera_view_width)
-
-    frames_dataset_nparray = np.array(frames_dataset)
-    observations_dataset_nparray = np.array(observations_dataset)
-
-    print(f"Length of frames_dataset: {len(frames_dataset)}")
-    print(f"Length of observations_dataset: {len(observations_dataset)}")
-
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dataset_filename_and_location = f"dataset/augmented_camera_view/proprio_pixel_dataset-{num_episodes}k_{current_datetime_str}.npz"
+    dataset_directory = f"dataset/augmented_camera_view/proprio_pixel_dataset-{num_episodes}k_{current_datetime_str}"
+    os.makedirs(dataset_directory, exist_ok=True)
 
-    save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_filename_and_location)
+    for batch_start in tqdm(range(0, num_episodes, batch_size)):
+        batch_end = min(batch_start + batch_size, num_episodes)
+        batch_seeds = seeds[batch_start: batch_end]
+
+        frames_dataset = []
+        observations_dataset = []
+
+        for seed in tqdm(batch_seeds, total=(len(batch_seeds))):
+            print(f"Generating dataset using seed {seed}")
+            generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, camera_view_height, camera_view_width)
+
+        frames_dataset_nparray = np.array(frames_dataset)
+        observations_dataset_nparray = np.array(observations_dataset)
+
+        print(f"Length of frames_dataset: {len(frames_dataset)}")
+        print(f"Length of observations_dataset: {len(observations_dataset)}")
+        
+        dataset_filename = f"proprio_pixel_dataset-{num_episodes}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
+        dataset_path = os.path.join(dataset_directory, dataset_filename)
+
+        save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_path)
+        print(f"Data batch {batch_start}-{batch_end} saving completed")
 
