@@ -213,12 +213,15 @@ if __name__ == "__main__":
 
     metadata = {
         'datetime': current_datetime_str,
-        'dataset': dataset_filename,
+        'dataset': DATASET_FILENAME,
         'device': str(DEVICE),
         'batch_size': BATCH_SIZE,
         'num_epochs': NUM_EPOCHS,
         'seed': SEED,
         'optimizer': 'Adam',  # Change this if using SGD
+        'learning_rate': LEARNING_RATE,
+        'step_size': STEP_SIZE,
+        'gamma': GAMMA,
         'training_losses': [],
         'validation_losses': [],
         'training_mae': [],
