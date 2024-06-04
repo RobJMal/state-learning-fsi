@@ -200,7 +200,7 @@ if __name__ == "__main__":
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     results_directory = f'{RESULTS_DIRECTORY}/pixel2statenet_training_{current_datetime_str}'
     os.makedirs(results_directory, exist_ok=True)
-    
+
     set_seed(seed=SEED)
 
     # Loading data
