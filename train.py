@@ -16,7 +16,7 @@ from model import Pixel2StateNet
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device: ", DEVICE)
-BATCH_SIZE = 16 
+BATCH_SIZE = 128 
 NUM_EPOCHS = 1000
 SEED = 0
 
@@ -176,8 +176,8 @@ if __name__ == "__main__":
     print(f"Model information saved to {model_summary_path}")
 
     loss_function = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.5e-3)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.2e-3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
 
     train_losses, val_losses = [], []
     train_mae, val_mae = [], []

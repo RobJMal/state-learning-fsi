@@ -65,11 +65,11 @@ class Pixel2StateNet(nn.Module):
 
         # Network for mapping between encoded pixel input to state
         self.mlp_network = nn.Sequential(
-            # nn.Linear(feature_map_size, 1024),
-            # nn.BatchNorm1d(1024),
+            nn.Linear(feature_map_size, 1024),
+            nn.BatchNorm1d(1024),
             # nn.Dropout(0.1),
-            # activation,
-            nn.Linear(feature_map_size, 512),
+            activation,
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
             # nn.Dropout(0.1),
             activation,
