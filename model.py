@@ -60,15 +60,15 @@ class Pixel2StateNet(nn.Module):
         self.mlp_network = nn.Sequential(
             nn.Linear(feature_map_size, 1024),
             nn.BatchNorm1d(1024),
-            nn.Dropout(0.1),
+            nn.Dropout(0.5),
             activation,
             nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
-            nn.Dropout(0.1),
+            nn.Dropout(0.5),
             activation,
             nn.Linear(512, 256),
             nn.BatchNorm1d(256),
-            nn.Dropout(0.1),
+            nn.Dropout(0.5),
             activation,
             nn.Linear(256, num_proprio_states),
         )
