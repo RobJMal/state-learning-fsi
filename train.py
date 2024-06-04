@@ -10,6 +10,7 @@ import json
 from torchsummary import summary
 import contextlib
 from datetime import datetime
+import argparse
 
 from model import Pixel2StateNet
 
@@ -90,11 +91,17 @@ class CustomDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
+    # Parsing arguments 
+    parser = argparse.ArgumentParser()
+    # parser.add_argument("--config", type=str, default="dmc-walker-walk.yml", help="config file to run(default: dmc-walker-walk.yml)")
+    # parser.add_argument("--log_to_wandb", type=str, default='offline', help="logging to wandb (options: online, offline)")
+    args = parser.parse_args()
+
     # For logging and data collection purposes 
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     results_directory = f'results/pixel2statenet_training_{current_datetime_str}'
     os.makedirs(results_directory, exist_ok=True)
-    
+
     set_seed(seed=SEED)
 
     # Loading data
