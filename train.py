@@ -95,8 +95,6 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     plt.savefig(f"state_space_histogram.png", bbox_inches='tight')
 
     # assert False
-
-    
     return dataset_df
 
 class CustomDataset(torch.utils.data.Dataset):
@@ -111,6 +109,39 @@ class CustomDataset(torch.utils.data.Dataset):
         image = self.images[idx]
         state_space = self.state_spaces[idx]
         return torch.tensor(image, dtype=torch.float32), torch.tensor(state_space, dtype=torch.float32)
+
+def plot_training_metrics(epoch, train_losses=[], train_mae=[], 
+                            val_losses=[], val_mae=[],
+                            metrics_plot_filename="pixel2state_model_loss.png"):
+    '''
+    Plots the training metrics (loss and mean absolute error (MAE) values).
+    '''
+    plt.figure()
+
+    # Plot for losses
+    plt.subplot(2, 1, 1)
+    if len(train_losses) > 0:
+        plt.plot(range(epoch+1), train_losses, label='Training Loss')
+    if len(val_losses) > 0: 
+        plt.plot(range(epoch+1), val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.yscale('log')
+    plt.legend()
+
+    # Plot for MAE (Mean Absolute Error)
+    plt.subplot(2, 1, 2)
+    if len(train_mae) > 0:
+        plt.plot(range(epoch+1), train_mae, label='Training MAE')
+    if len(val_mae):
+        plt.plot(range(epoch+1), val_mae, label='Validation MAE')
+    plt.xlabel('Epoch')
+    plt.ylabel('MAE')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(metrics_plot_filename)
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -255,28 +286,8 @@ if __name__ == "__main__":
         metadata['training_mae'].append(train_mae[-1])
         metadata['validation_mae'].append(val_mae[-1])
 
-        # Plotting
-        plt.figure()
-        plt.subplot(2, 1, 1)
-        plt.plot(range(epoch+1), train_losses, label='Training Loss')
-        # plt.plot(range(epoch+1), val_losses, label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.yscale('log')
-        plt.legend()
-
-        plt.subplot(2, 1, 2)
-        plt.plot(range(epoch+1), train_mae, label='Training MAE')
-        # plt.plot(range(epoch+1), val_mae, label='Validation MAE')
-        plt.xlabel('Epoch')
-        plt.ylabel('MAE')
-        plt.legend()
-
-        plt.tight_layout()
-        metrics_plot_filename = f"pixel2state_model_loss.png"
-        plt.savefig(metrics_plot_filename)
-        plt.close()
-
+        plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae,
+                              val_losses=val_losses, val_mae=val_mae)
 
     # Optionally save the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
