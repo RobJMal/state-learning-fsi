@@ -60,7 +60,7 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     '''
     print(f"Loading dataset {dataset_path_and_file}")
     dataset = np.load(dataset_path_and_file, allow_pickle=True)
-    max_data = 10000
+    max_data = 1000
     dataset_images = dataset['frames'][:max_data]
     dataset_proprios = dataset['observations'][:max_data]
 
@@ -73,7 +73,8 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     dataset_df = pd.DataFrame(data)
 
     print("Converting state_space column of dataframe")
-    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[8:11])
+    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[:11])
+    # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[8:11])
 
     # Normalize the state space data
     # statespace = np.stack(dataset_df['state_space'])
@@ -221,12 +222,13 @@ if __name__ == "__main__":
                 epoch_loss_val += loss.item() * images.size(0)
                 mae = torch.abs(outputs - states).mean().item()
                 epoch_mae_val += mae * images.size(0)
+                rel_err = (torch.abs(outputs - states) / torch.abs(states).max(0)[0]).mean().item()
 
                 # Compute distance error
-                dist_err = torch.norm(outputs - states, dim=1).mean().item()
-                rel_dist_err = (torch.norm(outputs - states, dim=1) / torch.norm(states, dim=1)).mean().item()
+                # dist_err = torch.norm(outputs - states, dim=1).mean().item()
+                # rel_dist_err = (torch.norm(outputs - states, dim=1) / torch.norm(states, dim=1)).mean().item()
 
-                print(f"\tDistance error: {1e3*dist_err:.4f} mm \t- Relative distance error: {100*rel_dist_err:.2f}%")
+                # print(f"Distance error: {1e3*dist_err:.4f} mm \t- Relative distance error: {100*rel_dist_err:.2f}%")
 
 
                 # Plot histogram of state space
@@ -245,7 +247,7 @@ if __name__ == "__main__":
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}")
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}, Relative error: {100*rel_err:.4f}%")
 
         # Update metadata
         metadata['training_losses'].append(train_losses[-1])
