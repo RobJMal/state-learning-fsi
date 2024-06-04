@@ -11,6 +11,8 @@ import json
 from torchsummary import summary
 import contextlib
 from datetime import datetime
+import yaml
+import argparse
 
 from model import Pixel2StateNet
 
@@ -143,19 +145,47 @@ def plot_training_metrics(epoch, train_losses=[], train_mae=[],
     plt.savefig(metrics_plot_filename)
     plt.close()
 
+def parse_args():
+    '''
+    Parses command line arguments for specifying the config file.
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="config_train.yaml", help="config file to run(default: config_train.yml)")
+    return parser.parse_args()
+
+def load_config(config_file):
+    '''
+    Loads the configuration from a YAML file.
+    '''
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
 
 if __name__ == "__main__":
+    args = parse_args()
+    config = load_config(args.config)
+
+    BATCH_SIZE = config['training']['batch_size']
+    NUM_EPOCHS = config['training']['num_epochs']
+    SEED = config['training']['seed']
+    LEARNING_RATE = config['training']['learning_rate']
+    STEP_SIZE = config['training']['step_size']
+    GAMMA = config['training']['gamma']
+    DATASET_DIRECTORY = config['training']['dataset_directory']
+    DATASET_FILENAME = config['training']['dataset_filename']
+
+    RESULTS_DIRECTORY = config['logging']['results_directory']
+
     # For logging and data collection purposes 
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    results_directory = f'results/pixel2statenet_training_{current_datetime_str}'
+    results_directory = f'{RESULTS_DIRECTORY}/pixel2statenet_training_{current_datetime_str}'
     os.makedirs(results_directory, exist_ok=True)
     
     set_seed(seed=SEED)
 
     # Loading data
-    dataset_directory = "dataset/augmented_camera_view" 
-    dataset_filename = "proprio_pixel_dataset-50.npz" #"proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz"
-    dataset_path = os.path.join(dataset_directory, dataset_filename)
+    dataset_path = os.path.join(DATASET_DIRECTORY, DATASET_FILENAME)
     dataset_df = load_datset(dataset_path)
     
     # Creating training and test sets
@@ -208,8 +238,8 @@ if __name__ == "__main__":
     print(f"Model information saved to {model_summary_path}")
 
     loss_function = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.2e-3)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=STEP_SIZE, gamma=GAMMA)
 
     train_losses, val_losses = [], []
     train_mae, val_mae = [], []
@@ -289,7 +319,7 @@ if __name__ == "__main__":
         plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae,
                               val_losses=val_losses, val_mae=val_mae)
 
-    # Optionally save the model
+    # Saving the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
     model_path = os.path.join(results_directory, model_filename)
     torch.save(model.state_dict(), model_path)
