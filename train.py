@@ -53,7 +53,7 @@ def concatenate_state_space(state_space_dict):
     vector = np.concatenate(arrays_list)
     return vector
 
-def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz"):
+def load_datset(dataset_path_and_file):
     '''
     Loads dataset from .npz file. Returns it as a pandas dataframe. 
     '''
