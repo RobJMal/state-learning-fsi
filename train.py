@@ -60,7 +60,7 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     '''
     print(f"Loading dataset {dataset_path_and_file}")
     dataset = np.load(dataset_path_and_file, allow_pickle=True)
-    max_data = 100
+    max_data = 10000
     dataset_images = dataset['frames'][:max_data]
     dataset_proprios = dataset['observations'][:max_data]
 
@@ -73,13 +73,13 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     dataset_df = pd.DataFrame(data)
 
     print("Converting state_space column of dataframe")
-    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x))
+    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[8:11])
 
     # Normalize the state space data
-    statespace = np.stack(dataset_df['state_space'])
-    mean = statespace.mean(axis=0)
-    std = statespace.std(axis=0)
-    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: (x - mean) / std)
+    # statespace = np.stack(dataset_df['state_space'])
+    # mean = statespace.mean(axis=0)
+    # std = statespace.std(axis=0)
+    # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: (x - mean) / std)
 
     # # Plot histogram of state space
     print("Plotting histogram of state space")
@@ -221,6 +221,13 @@ if __name__ == "__main__":
                 epoch_loss_val += loss.item() * images.size(0)
                 mae = torch.abs(outputs - states).mean().item()
                 epoch_mae_val += mae * images.size(0)
+
+                # Compute distance error
+                dist_err = torch.norm(outputs - states, dim=1).mean().item()
+                rel_dist_err = (torch.norm(outputs - states, dim=1) / torch.norm(states, dim=1)).mean().item()
+
+                print(f"\tDistance error: {1e3*dist_err:.4f} mm \t- Relative distance error: {100*rel_dist_err:.2f}%")
+
 
                 # Plot histogram of state space
                 errors = torch.abs(outputs - states).cpu().numpy()
