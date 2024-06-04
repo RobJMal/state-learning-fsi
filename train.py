@@ -120,15 +120,15 @@ class CustomDataset(torch.utils.data.Dataset):
         return torch.tensor(image, dtype=torch.float32), torch.tensor(state_space, dtype=torch.float32)
 
 def plot_training_metrics(epoch, train_losses=[], train_mae=[], 
-                            val_losses=[], val_mae=[],
+                            val_losses=[], val_mae=[], rel_err_vals=[],
                             metrics_plot_filename="pixel2state_model_loss.png"):
     '''
     Plots the training metrics (loss and mean absolute error (MAE) values).
     '''
-    plt.figure()
+    plt.figure(figsize=(6,9))
 
     # Plot for losses
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 1, 1)
     if len(train_losses) > 0:
         plt.plot(range(epoch+1), train_losses, label='Training Loss')
     if len(val_losses) > 0: 
@@ -139,13 +139,23 @@ def plot_training_metrics(epoch, train_losses=[], train_mae=[],
     plt.legend()
 
     # Plot for MAE (Mean Absolute Error)
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 2)
     if len(train_mae) > 0:
         plt.plot(range(epoch+1), train_mae, label='Training MAE')
     if len(val_mae):
         plt.plot(range(epoch+1), val_mae, label='Validation MAE')
     plt.xlabel('Epoch')
     plt.ylabel('MAE')
+    plt.yscale('log')
+    plt.legend()
+
+    # Plot for relative error
+    plt.subplot(3, 1, 3)
+    if len(rel_err_vals) > 0: 
+        plt.plot(range(epoch+1), rel_err_vals, label='Relative Error %', color='orange')
+    plt.xlabel('Epoch')
+    plt.ylabel('Relative Error %')
+    plt.yscale('log')
     plt.legend()
 
     plt.tight_layout()
@@ -253,6 +263,7 @@ if __name__ == "__main__":
 
     train_losses, val_losses = [], []
     train_mae, val_mae = [], []
+    rel_err_vals = []
 
     for epoch in range(NUM_EPOCHS):
         model.train()
@@ -293,7 +304,8 @@ if __name__ == "__main__":
                 epoch_loss_val += loss.item() * images.size(0)
                 mae = torch.abs(outputs - states).mean().item()
                 epoch_mae_val += mae * images.size(0)
-                rel_err = (torch.abs(outputs - states) / torch.abs(states).max(0)[0]).mean().item()
+                rel_err = (torch.abs(outputs - states) / torch.abs(states).max(0)[0]).mean().item() * 100
+                rel_err_vals.append(rel_err)
 
                 # Compute distance error
                 # dist_err = torch.norm(outputs - states, dim=1).mean().item()
@@ -308,7 +320,7 @@ if __name__ == "__main__":
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}, Relative error: {100*rel_err:.4f}%")
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}, Relative error: {rel_err:.4f}%")
 
         # Update metadata
         metadata['training_losses'].append(train_losses[-1])
@@ -316,8 +328,8 @@ if __name__ == "__main__":
         metadata['training_mae'].append(train_mae[-1])
         metadata['validation_mae'].append(val_mae[-1])
 
-        plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae,
-                              val_losses=val_losses, val_mae=val_mae)
+        plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae, 
+                                rel_err_vals=rel_err_vals)
 
     # Saving the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
