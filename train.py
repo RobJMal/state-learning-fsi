@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import random
@@ -15,8 +16,8 @@ from model import Pixel2StateNet
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device: ", DEVICE)
-BATCH_SIZE = 32  
-NUM_EPOCHS = 100
+BATCH_SIZE = 16 
+NUM_EPOCHS = 1000
 SEED = 0
 
 
@@ -59,8 +60,9 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     '''
     print(f"Loading dataset {dataset_path_and_file}")
     dataset = np.load(dataset_path_and_file, allow_pickle=True)
-    dataset_images = dataset['frames']
-    dataset_proprios = dataset['observations']
+    max_data = 100
+    dataset_images = dataset['frames'][:max_data]
+    dataset_proprios = dataset['observations'][:max_data]
 
     # Converting to pandas dataframe 
     print("Converting to pandas dataframe")
@@ -73,6 +75,27 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     print("Converting state_space column of dataframe")
     dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x))
 
+    # Normalize the state space data
+    statespace = np.stack(dataset_df['state_space'])
+    mean = statespace.mean(axis=0)
+    std = statespace.std(axis=0)
+    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: (x - mean) / std)
+
+    # # Plot histogram of state space
+    print("Plotting histogram of state space")
+    plt.figure()
+    for idx in range(dataset_df['state_space'][0].shape[0]):
+        plt.hist([x[idx] for x in dataset_df['state_space']], bins=50, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
+    plt.xlabel(f'State space')
+    plt.ylabel('Frequency')
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
+    # plt.xlim(-1, 1)
+    plt.title('Histogram of state space length')
+    plt.savefig(f"state_space_histogram.png", bbox_inches='tight')
+
+    # assert False
+
+    
     return dataset_df
 
 class CustomDataset(torch.utils.data.Dataset):
@@ -99,7 +122,7 @@ if __name__ == "__main__":
 
     # Loading data
     dataset_directory = "dataset/augmented_camera_view" 
-    dataset_filename = "proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz"
+    dataset_filename = "proprio_pixel_dataset-50.npz" #"proprio_pixel_dataset-100k_2024-06-02_17-44-33.npz"
     dataset_path = os.path.join(dataset_directory, dataset_filename)
     dataset_df = load_datset(dataset_path)
     
@@ -124,7 +147,7 @@ if __name__ == "__main__":
     test_dataset = CustomDataset(images_test, state_space_test)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=state_space_train.shape[0], shuffle=False)
 
     metadata = {
         'datetime': current_datetime_str,
@@ -134,7 +157,6 @@ if __name__ == "__main__":
         'num_epochs': NUM_EPOCHS,
         'seed': SEED,
         'optimizer': 'Adam',  # Change this if using SGD
-        'learning_rate': 1e-4,
         'training_losses': [],
         'validation_losses': [],
         'training_mae': [],
@@ -142,6 +164,9 @@ if __name__ == "__main__":
     }
 
     model = Pixel2StateNet().to(DEVICE)
+    numParams = int(sum([np.prod(p.size()) for p in filter(lambda p: p.requires_grad, model.parameters())]))
+    print(f"Number of trainable parameters in model: {numParams}")
+    
 
     model_summary_filename = f"model_summary_{current_datetime_str}.txt"
     model_summary_path = os.path.join(results_directory, model_summary_filename)
@@ -151,7 +176,8 @@ if __name__ == "__main__":
     print(f"Model information saved to {model_summary_path}")
 
     loss_function = torch.nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.5e-3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
 
     train_losses, val_losses = [], []
     train_mae, val_mae = [], []
@@ -161,7 +187,8 @@ if __name__ == "__main__":
         epoch_loss_train, epoch_mae_train = 0, 0
 
         # Training loop 
-        for images, states in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{NUM_EPOCHS}"):
+        for images, states in train_loader:
+        # for images, states in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{NUM_EPOCHS}"):
             images, states = images.to(DEVICE), states.to(DEVICE)
 
             optimizer.zero_grad()
@@ -177,13 +204,15 @@ if __name__ == "__main__":
 
         train_losses.append(epoch_loss_train / len(train_loader.dataset))
         train_mae.append(epoch_mae_train / len(train_loader.dataset))
+        scheduler.step()
 
         # Validation 
         model.eval()
         epoch_loss_val, epoch_mae_val = 0, 0
 
         with torch.no_grad():
-            for images, states in tqdm(test_loader, desc=f"Validation Epoch {epoch+1}/{NUM_EPOCHS}"):
+            # for images, states in tqdm(test_loader, desc=f"Validation Epoch {epoch+1}/{NUM_EPOCHS}"):
+            for images, states in test_loader:
                 images, states = images.to(DEVICE), states.to(DEVICE)
                 outputs = model(images)
                 loss = loss_function(outputs, states)
@@ -192,11 +221,24 @@ if __name__ == "__main__":
                 epoch_loss_val += loss.item() * images.size(0)
                 mae = torch.abs(outputs - states).mean().item()
                 epoch_mae_val += mae * images.size(0)
+
+                # Plot histogram of state space
+                errors = torch.abs(outputs - states).cpu().numpy()
+                plt.figure()
+                for idx in range(errors.shape[1]):
+                    plt.hist(errors[:,idx], bins=20, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
+                plt.xlabel(f'Error')
+                plt.ylabel('Frequency')
+                plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
+                # plt.xlim(-1, 1)
+                plt.savefig(f"error_histogram.png", bbox_inches='tight')
+                plt.close()
+
         
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {train_losses[-1]:.4f}, Validation Loss: {val_losses[-1]:.4f}, Training MAE: {train_mae[-1]:.4f}, Validation MAE: {val_mae[-1]:.4f}")
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}")
 
         # Update metadata
         metadata['training_losses'].append(train_losses[-1])
@@ -204,30 +246,33 @@ if __name__ == "__main__":
         metadata['training_mae'].append(train_mae[-1])
         metadata['validation_mae'].append(val_mae[-1])
 
+        # Plotting
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.plot(range(epoch+1), train_losses, label='Training Loss')
+        # plt.plot(range(epoch+1), val_losses, label='Validation Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.yscale('log')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(range(epoch+1), train_mae, label='Training MAE')
+        # plt.plot(range(epoch+1), val_mae, label='Validation MAE')
+        plt.xlabel('Epoch')
+        plt.ylabel('MAE')
+        plt.legend()
+
+        plt.tight_layout()
+        metrics_plot_filename = f"pixel2state_model_loss.png"
+        plt.savefig(metrics_plot_filename)
+        plt.close()
+
+
     # Optionally save the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
     model_path = os.path.join(results_directory, model_filename)
     torch.save(model.state_dict(), model_path)
-
-    plt.figure()
-    plt.subplot(2, 1, 1)
-    plt.plot(range(NUM_EPOCHS), train_losses, label='Training Loss')
-    plt.plot(range(NUM_EPOCHS), val_losses, label='Validation Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    plt.subplot(2, 1, 2)
-    plt.plot(range(NUM_EPOCHS), train_mae, label='Training MAE')
-    plt.plot(range(NUM_EPOCHS), val_mae, label='Validation MAE')
-    plt.xlabel('Epoch')
-    plt.ylabel('MAE')
-    plt.legend()
-
-    plt.tight_layout()
-    metrics_plot_filename = f"pixel2state_model_metrics_{current_datetime_str}.png"
-    metrics_plot_path = os.path.join(results_directory, metrics_plot_filename)
-    plt.savefig(metrics_plot_path)
 
     metadata_filename = f"training_metadata_{current_datetime_str}.json"
     metadata_path = os.path.join(results_directory, metadata_filename)

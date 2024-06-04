@@ -45,6 +45,13 @@ class Pixel2StateNet(nn.Module):
                 stride,
             ),
             activation,
+            nn.Conv2d(
+                depth * 8,
+                depth * 16,
+                kernel_size,
+                stride,
+            ),
+            activation,
         )
 
         feature_map_size = 0
@@ -58,19 +65,20 @@ class Pixel2StateNet(nn.Module):
 
         # Network for mapping between encoded pixel input to state
         self.mlp_network = nn.Sequential(
-            nn.Linear(feature_map_size, 1024),
-            nn.BatchNorm1d(1024),
-            nn.Dropout(0.1),
-            activation,
-            nn.Linear(1024, 512),
+            # nn.Linear(feature_map_size, 1024),
+            # nn.BatchNorm1d(1024),
+            # nn.Dropout(0.1),
+            # activation,
+            nn.Linear(feature_map_size, 512),
             nn.BatchNorm1d(512),
-            nn.Dropout(0.1),
+            # nn.Dropout(0.1),
             activation,
             nn.Linear(512, 256),
             nn.BatchNorm1d(256),
-            nn.Dropout(0.1),
+            # nn.Dropout(0.1),
             activation,
             nn.Linear(256, num_proprio_states),
+            nn.BatchNorm1d(num_proprio_states),
         )
 
     def forward(self, x):

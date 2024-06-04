@@ -76,7 +76,7 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 1000
+    num_episodes = 50
     batch_size = 50
 
     # Ensure the directories exists
