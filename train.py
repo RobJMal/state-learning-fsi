@@ -192,6 +192,8 @@ if __name__ == "__main__":
     DATASET_DIRECTORY = config['training']['dataset_directory']
     DATASET_FILENAME = config['training']['dataset_filename']
 
+    INPUT_SIZE = tuple(config['model']['input_size'])
+
     RESULTS_DIRECTORY = config['logging']['results_directory']
 
     # For logging and data collection purposes 
@@ -239,6 +241,7 @@ if __name__ == "__main__":
         'learning_rate': LEARNING_RATE,
         'step_size': STEP_SIZE,
         'gamma': GAMMA,
+        'input_size': INPUT_SIZE,
         'training_losses': [],
         'validation_losses': [],
         'training_mae': [],
@@ -249,7 +252,6 @@ if __name__ == "__main__":
     numParams = int(sum([np.prod(p.size()) for p in filter(lambda p: p.requires_grad, model.parameters())]))
     print(f"Number of trainable parameters in model: {numParams}")
     
-
     model_summary_filename = f"model_summary_{current_datetime_str}.txt"
     model_summary_path = os.path.join(results_directory, model_summary_filename)
     with open(model_summary_path, "w") as f:
