@@ -18,9 +18,6 @@ from model import Pixel2StateNet
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device: ", DEVICE)
-BATCH_SIZE = 128 
-NUM_EPOCHS = 1000
-SEED = 0
 
 
 def set_seed(seed) -> None:
