@@ -45,6 +45,13 @@ class Pixel2StateNet(nn.Module):
                 stride,
             ),
             activation,
+            nn.Conv2d(
+                depth * 8,
+                depth * 16,
+                kernel_size,
+                stride,
+            ),
+            activation,
         )
 
         feature_map_size = 0
@@ -54,23 +61,24 @@ class Pixel2StateNet(nn.Module):
             feature_map_size = dummy_output.view(1, -1).size(1)
             print(f"Feature map size: ", feature_map_size)
 
-        num_proprio_states = 24 # Fish-swim environment has 24 observable states
+        num_proprio_states = 11 # Fish-swim environment has 24 observable states
 
         # Network for mapping between encoded pixel input to state
         self.mlp_network = nn.Sequential(
             nn.Linear(feature_map_size, 1024),
-            nn.BatchNorm1d(1024),
-            nn.Dropout(0.5),
+            # nn.BatchNorm1d(1024),
+            # nn.Dropout(0.1),
             activation,
             nn.Linear(1024, 512),
-            nn.BatchNorm1d(512),
-            nn.Dropout(0.5),
+            # nn.BatchNorm1d(512),
+            # nn.Dropout(0.1),
             activation,
             nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.5),
+            # nn.BatchNorm1d(256),
+            # nn.Dropout(0.1),
             activation,
             nn.Linear(256, num_proprio_states),
+            # nn.BatchNorm1d(num_proprio_states),
         )
 
     def forward(self, x):

@@ -76,7 +76,7 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 1000
+    num_episodes = 50
     batch_size = 50
 
     # Ensure the directories exists
@@ -113,6 +113,7 @@ if __name__ == '__main__':
         dataset_filename = f"proprio_pixel_dataset-{num_episodes}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
         dataset_path = os.path.join(dataset_directory, dataset_filename)
 
+        print("Saving data...")
         save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_path)
         print(f"Data batch {batch_start}-{batch_end} saving completed")
 
