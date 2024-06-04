@@ -1,0 +1,15 @@
+training:
+  batch_size: 128
+  num_epochs: 1000
+  seed: 0
+  learning_rate: 0.2e-3
+  step_size: 20
+  gamma: 0.9
+  dataset_directory: "dataset/augmented_camera_view/proprio_pixel_dataset-50k_2024-06-05_00-00-13"
+  dataset_filename: "proprio_pixel_dataset-50k-start-0-end-50_2024-06-05_00-00-13.npz"
+
+model:
+  input_size: [3, 128, 128]
+
+logging:
+  results_directory: "results"
