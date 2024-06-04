@@ -81,20 +81,30 @@ def load_datset(dataset_path_and_file="dataset/augmented_camera_view/proprio_pix
     # std = statespace.std(axis=0)
     # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: (x - mean) / std)
 
-    # # Plot histogram of state space
-    print("Plotting histogram of state space")
+    # Plot histogram of state space
+    plot_histogram(dataset_df, plot_title="Histogram of state space length", filename="state_space_histogram.png")
+
+    return dataset_df
+
+def plot_histogram(data, plot_title, filename):
+    '''
+    Plots a histogram from a given data. 
+    '''
     plt.figure()
-    for idx in range(dataset_df['state_space'][0].shape[0]):
-        plt.hist([x[idx] for x in dataset_df['state_space']], bins=50, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
+
+    if type(data) == pd.DataFrame:
+        for idx in range(data['state_space'][0].shape[0]):
+            plt.hist([x[idx] for x in data['state_space']], bins=50, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/data['state_space'][0].shape[0]), label=f'Index {idx}')
+    elif type(data) == np.ndarray:
+        for idx in range(errors.shape[1]):
+                    plt.hist(errors[:,idx], bins=20, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
+
     plt.xlabel(f'State space')
     plt.ylabel('Frequency')
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
-    # plt.xlim(-1, 1)
-    plt.title('Histogram of state space length')
-    plt.savefig(f"state_space_histogram.png", bbox_inches='tight')
-
-    # assert False
-    return dataset_df
+    plt.title(plot_title)
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
 
 class CustomDataset(torch.utils.data.Dataset):
     def __init__(self, images, state_spaces):
@@ -291,20 +301,10 @@ if __name__ == "__main__":
 
                 # print(f"Distance error: {1e3*dist_err:.4f} mm \t- Relative distance error: {100*rel_dist_err:.2f}%")
 
-
                 # Plot histogram of state space
                 errors = torch.abs(outputs - states).cpu().numpy()
-                plt.figure()
-                for idx in range(errors.shape[1]):
-                    plt.hist(errors[:,idx], bins=20, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
-                plt.xlabel(f'Error')
-                plt.ylabel('Frequency')
-                plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
-                # plt.xlim(-1, 1)
-                plt.savefig(f"error_histogram.png", bbox_inches='tight')
-                plt.close()
+                plot_histogram(errors, plot_title="Error Histogram of State Space.png", filename="error_histogram.png")
 
-        
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
