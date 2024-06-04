@@ -317,7 +317,7 @@ if __name__ == "__main__":
 
                 # Plot histogram of state space
                 errors = torch.abs(outputs - states).cpu().numpy()
-                plot_histogram(errors, plot_title="Error Histogram of State Space.png", filename="error_histogram.png")
+                plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", filename="prediction_error_histogram.png")
 
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
