@@ -117,8 +117,6 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
     '''
     Plots multiple histograms for each state in a single figure using Seaborn.
     '''
-    print("Plotting seaborn histogram")
-
     if isinstance(data, pd.DataFrame):
         state_space_data = np.stack(data['state_space'])
     elif isinstance(data, np.ndarray):
