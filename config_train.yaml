@@ -6,7 +6,7 @@ training:
   step_size: 20
   gamma: 0.9
   dataset_directory: "dataset/augmented_camera_view_1"
-  dataset_filename: "proprio_pixel_dataset-50k-start-0-end-50_2024-06-05_02-37-02.npz"
+  dataset_filename: "proprio_pixel_dataset-50k-start-0-end-50_2024-06-05_10-42-57.npz"
 
 model:
   input_size: [12, 64, 64] # Note that channel size should be first dimension; example sizes that are valid: [3, 128, 128]
