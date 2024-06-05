@@ -2,5 +2,4 @@ default:
   num_episodes: 50
   batch_size: 50
   dataset_directory: "dataset/augmented_camera_view_1"
-  dataset_filename: "proprio_pixel_dataset-50k-start-0-end-50_2024-06-05_00-00-13.npz"
-  frame_size: [12, 64, 64]
+  frame_size: [64, 64, 12]

@@ -48,11 +48,12 @@ def save_data(frames, observations, filename_and_location='dataset/proprio_pixel
 
 
 def generate_episode(seed, frames, observations, domain_name="fish", task_name="swim", 
-                     camera_view_height=64, camera_view_width=64):
+                     camera_view_height=64, camera_view_width=64, target_frame_dim=(64, 64, 12)):
     '''
     Runs a full episode of a domain and task to generate data. Note that it takes in 
     a frames and observations array and it appends to that. 
     '''
+    print(f"Printing target frame dim {target_frame_dim}")
     random_state = np.random.RandomState(seed)    # Setting the seed
     env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
 
@@ -68,14 +69,18 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
         camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
         camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
 
-        # # Concatentating images in a grid (128, 128, 3)
-        # top_row = np.concatenate((camera0, camera1), axis=1)
-        # bottom_row = np.concatenate((camera2, camera3), axis=1)
-        # camera_obs = np.concatenate((top_row, bottom_row), axis=0)
+        camera_obs = None
+
+        # Concatentating images in a grid (128, 128, 3)
+        if target_frame_dim == (128, 128, 3): 
+            top_row = np.concatenate((camera0, camera1), axis=1)
+            bottom_row = np.concatenate((camera2, camera3), axis=1)
+            camera_obs = np.concatenate((top_row, bottom_row), axis=0)
 
         # Concatenating images along the axis 
         # Source: https://web.archive.org/web/20170517022842/http://ivpl.eecs.northwestern.edu/sites/default/files/07444187.pdf
-        camera_obs = np.concatenate((camera0, camera1, camera2, camera3), axis=2)
+        elif target_frame_dim == (64, 64, 12):
+            camera_obs = np.concatenate((camera0, camera1, camera2, camera3), axis=2)
 
         frames.append(camera_obs)
         observations.append(copy.deepcopy(time_step.observation))
@@ -89,15 +94,12 @@ if __name__ == '__main__':
     NUM_EPISODES = config['default']['num_episodes']
     BATCH_SIZE = config['default']['batch_size']
     DATASET_DIRECTORY = config['default']['dataset_directory']
-    DATASET_FILENAME = config['default']['dataset_filename']
     FRAME_SIZE = tuple(config['default']['frame_size'])
-
-    breakpoint()
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
     os.makedirs("dataset", exist_ok=True)
-    os.makedirs("dataset/augmented_camera_view_1", exist_ok=True)
+    os.makedirs(DATASET_DIRECTORY, exist_ok=True)
 
     domain_name = "fish"
     task_name = "swim"
@@ -105,8 +107,7 @@ if __name__ == '__main__':
     camera_view_height, camera_view_width = 64, 64 
 
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dataset_directory = f"dataset/augmented_camera_view/proprio_pixel_dataset-{NUM_EPISODES}k_{current_datetime_str}"
-    os.makedirs(dataset_directory, exist_ok=True)
+    os.makedirs(DATASET_DIRECTORY, exist_ok=True)
 
     for batch_start in tqdm(range(0, NUM_EPISODES, BATCH_SIZE)):
         batch_end = min(batch_start + BATCH_SIZE, NUM_EPISODES)
@@ -117,7 +118,8 @@ if __name__ == '__main__':
 
         for seed in tqdm(batch_seeds, total=(len(batch_seeds))):
             print(f"Generating dataset using seed {seed}")
-            generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, camera_view_height, camera_view_width)
+            generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, 
+                                camera_view_height, camera_view_width, FRAME_SIZE)
 
         frames_dataset_nparray = np.array(frames_dataset)
         observations_dataset_nparray = np.array(observations_dataset)
