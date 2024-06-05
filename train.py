@@ -233,7 +233,7 @@ if __name__ == "__main__":
         'validation_mae': [],
     }
 
-    model = Pixel2StateNet().to(DEVICE)
+    model = Pixel2StateNet(observation_shape=INPUT_SIZE).to(DEVICE)
     numParams = int(sum([np.prod(p.size()) for p in filter(lambda p: p.requires_grad, model.parameters())]))
     print(f"Number of trainable parameters in model: {numParams}")
     
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     model_summary_path = os.path.join(results_directory, model_summary_filename)
     with open(model_summary_path, "w") as f:
         with contextlib.redirect_stdout(f):
-            summary(model, input_size=(3, 128, 128))
+            summary(model, input_size=INPUT_SIZE)
     print(f"Model information saved to {model_summary_path}")
 
     loss_function = torch.nn.MSELoss()
