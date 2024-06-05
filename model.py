@@ -93,7 +93,7 @@ class Pixel2StateNet(nn.Module):
             feature_map_size = dummy_output.view(1, -1).size(1)
             print(f"Feature map size: ", feature_map_size)
 
-        num_proprio_states = 11 # Fish-swim environment has 24 observable states
+        num_proprio_states = 24 # Fish-swim environment has 24 observable states
 
         # Network for mapping between encoded pixel input to state
         self.mlp_network = nn.Sequential(
