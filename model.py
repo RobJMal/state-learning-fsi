@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Pixel2StateNet(nn.Module):
-    def __init__(self, observation_shape=(3, 128, 128)):
+    def __init__(self, observation_shape):
         super().__init__()
 
         # Encoder parameters (from DreamerV1)
@@ -16,43 +16,75 @@ class Pixel2StateNet(nn.Module):
         activation = getattr(nn, activation)()
         self.observation_shape = observation_shape
 
-        self.encoder_network = nn.Sequential(
-            nn.Conv2d(
-                self.observation_shape[0],
-                depth * 1,
-                kernel_size,
-                stride,
-            ),
-            activation,
-            nn.Conv2d(
-                depth * 1,
-                depth * 2,
-                kernel_size,
-                stride,
-            ),
-            activation,
-            nn.Conv2d(
-                depth * 2,
-                depth * 4,
-                kernel_size,
-                stride,
-            ),
-            activation,
-            nn.Conv2d(
-                depth * 4,
-                depth * 8,
-                kernel_size,
-                stride,
-            ),
-            activation,
-            nn.Conv2d(
-                depth * 8,
-                depth * 16,
-                kernel_size,
-                stride,
-            ),
-            activation,
-        )
+        if self.observation_shape == (3, 128, 128):
+            self.encoder_network = nn.Sequential(
+                nn.Conv2d(
+                    self.observation_shape[0],
+                    depth * 1,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 1,
+                    depth * 2,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 2,
+                    depth * 4,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 4,
+                    depth * 8,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 8,
+                    depth * 16,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+            )
+        elif self.observation_shape == (12, 64, 64):
+            self.encoder_network = nn.Sequential(
+                nn.Conv2d(
+                    self.observation_shape[0],
+                    depth * 1,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 1,
+                    depth * 2,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 2,
+                    depth * 4,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+                nn.Conv2d(
+                    depth * 4,
+                    depth * 8,
+                    kernel_size,
+                    stride,
+                ),
+                activation,
+            )
 
         feature_map_size = 0
         with torch.no_grad():
