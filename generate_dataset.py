@@ -13,6 +13,8 @@ from datetime import datetime
 from tqdm import tqdm
 import copy 
 
+from utils import parse_args, load_config
+
 # For creating video 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -66,9 +68,14 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
         camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
         camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
 
-        top_row = np.concatenate((camera0, camera1), axis=1)
-        bottom_row = np.concatenate((camera2, camera3), axis=1)
-        camera_obs = np.concatenate((top_row, bottom_row), axis=0)
+        # # Concatentating images in a grid (128, 128, 3)
+        # top_row = np.concatenate((camera0, camera1), axis=1)
+        # bottom_row = np.concatenate((camera2, camera3), axis=1)
+        # camera_obs = np.concatenate((top_row, bottom_row), axis=0)
+
+        # Concatenating images along the axis 
+        # Source: https://web.archive.org/web/20170517022842/http://ivpl.eecs.northwestern.edu/sites/default/files/07444187.pdf
+        camera_obs = np.concatenate((camera0, camera1, camera2, camera3), axis=2)
 
         frames.append(camera_obs)
         observations.append(copy.deepcopy(time_step.observation))
@@ -76,25 +83,33 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     return frames, observations
 
 if __name__ == '__main__':
-    num_episodes = 50
-    batch_size = 50
+    args = parse_args()
+    config = load_config(args.config)
+
+    NUM_EPISODES = config['default']['num_episodes']
+    BATCH_SIZE = config['default']['batch_size']
+    DATASET_DIRECTORY = config['default']['dataset_directory']
+    DATASET_FILENAME = config['default']['dataset_filename']
+    FRAME_SIZE = tuple(config['default']['frame_size'])
+
+    breakpoint()
 
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
     os.makedirs("dataset", exist_ok=True)
-    os.makedirs("dataset/augmented_camera_view", exist_ok=True)
+    os.makedirs("dataset/augmented_camera_view_1", exist_ok=True)
 
     domain_name = "fish"
     task_name = "swim"
-    seeds = [i for i in range(num_episodes)]
+    seeds = [i for i in range(NUM_EPISODES)]
     camera_view_height, camera_view_width = 64, 64 
 
     current_datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dataset_directory = f"dataset/augmented_camera_view/proprio_pixel_dataset-{num_episodes}k_{current_datetime_str}"
+    dataset_directory = f"dataset/augmented_camera_view/proprio_pixel_dataset-{NUM_EPISODES}k_{current_datetime_str}"
     os.makedirs(dataset_directory, exist_ok=True)
 
-    for batch_start in tqdm(range(0, num_episodes, batch_size)):
-        batch_end = min(batch_start + batch_size, num_episodes)
+    for batch_start in tqdm(range(0, NUM_EPISODES, BATCH_SIZE)):
+        batch_end = min(batch_start + BATCH_SIZE, NUM_EPISODES)
         batch_seeds = seeds[batch_start: batch_end]
 
         frames_dataset = []
@@ -110,7 +125,7 @@ if __name__ == '__main__':
         print(f"Length of frames_dataset: {len(frames_dataset)}")
         print(f"Length of observations_dataset: {len(observations_dataset)}")
         
-        dataset_filename = f"proprio_pixel_dataset-{num_episodes}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
+        dataset_filename = f"proprio_pixel_dataset-{NUM_EPISODES}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
         dataset_path = os.path.join(dataset_directory, dataset_filename)
 
         print("Saving data...")
