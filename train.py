@@ -83,7 +83,8 @@ def load_datset(dataset_path_and_file):
     # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: (x - mean) / std)
 
     # Plot histogram of state space
-    plot_histogram(dataset_df, plot_title="Histogram of state space length", filename="state_space_histogram.png")
+    plot_histogram(dataset_df, plot_title="Histogram of state space length", 
+                    filename=f"{results_directory}/state_space_histogram_{current_datetime_str}.png")
 
     return dataset_df
 
@@ -120,9 +121,8 @@ class CustomDataset(torch.utils.data.Dataset):
         state_space = self.state_spaces[idx]
         return torch.tensor(image, dtype=torch.float32), torch.tensor(state_space, dtype=torch.float32)
 
-def plot_training_metrics(epoch, train_losses=[], train_mae=[], 
-                            val_losses=[], val_mae=[], rel_err_vals=[],
-                            metrics_plot_filename="pixel2state_model_loss.png"):
+def plot_training_metrics(epoch, metrics_plot_filename, train_losses=[], train_mae=[], 
+                            val_losses=[], val_mae=[], rel_err_vals=[]):
     '''
     Plots the training metrics (loss and mean absolute error (MAE) values).
     '''
@@ -231,6 +231,7 @@ if __name__ == "__main__":
         'validation_losses': [],
         'training_mae': [],
         'validation_mae': [],
+        'relative_error_values': [],
     }
 
     model = Pixel2StateNet(observation_shape=INPUT_SIZE).to(DEVICE)
@@ -302,7 +303,8 @@ if __name__ == "__main__":
 
                 # Plot histogram of state space
                 errors = torch.abs(outputs - states).cpu().numpy()
-                plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", filename="prediction_error_histogram.png")
+                plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", 
+                                filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
 
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
@@ -314,9 +316,11 @@ if __name__ == "__main__":
         metadata['validation_losses'].append(val_losses[-1])
         metadata['training_mae'].append(train_mae[-1])
         metadata['validation_mae'].append(val_mae[-1])
+        metadata['relative_error_values'].append(rel_err_vals[-1])
 
         plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae, 
-                                rel_err_vals=rel_err_vals)
+                                rel_err_vals=rel_err_vals,
+                                metrics_plot_filename=f"{results_directory}/pixel2state_model_loss_{current_datetime_str}.png")
 
     # Saving the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
