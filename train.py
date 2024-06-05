@@ -11,8 +11,8 @@ import json
 from torchsummary import summary
 import contextlib
 from datetime import datetime
-import yaml
-import argparse
+import seaborn as sns
+import math
 
 from model import Pixel2StateNet
 from utils import parse_args, load_config
@@ -72,8 +72,13 @@ def load_datset(dataset_path_and_file):
     }
     dataset_df = pd.DataFrame(data)
 
-    print("Converting state_space column of dataframe")
-    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[:11])
+    # Using this to be consistent with the code 
+    dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[:]) 
+
+    # Want to ignore the velocity states 
+    # print("Converting state_space column of dataframe")
+    # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[:11]) 
+    
     # dataset_df['state_space'] = dataset_df['state_space'].apply(lambda x: concatenate_state_space(x)[8:11])
 
     # Normalize the state space data
@@ -105,6 +110,80 @@ def plot_histogram(data, plot_title, filename):
     plt.ylabel('Frequency')
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
     plt.title(plot_title)
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
+    '''
+    Plots multiple histograms for each state in a single figure using Seaborn.
+    '''
+    print("Plotting seaborn histogram")
+
+    if isinstance(data, pd.DataFrame):
+        state_space_data = np.stack(data['state_space'])
+    elif isinstance(data, np.ndarray):
+        state_space_data = data
+    else:
+        raise ValueError("Unsupported data type")
+
+    num_states = state_space_data.shape[1]
+    
+    # Calculate the number of rows needed
+    num_cols = plots_per_row
+    num_rows = math.ceil(num_states / num_cols)
+    
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(num_cols * 5, num_rows * 4))
+    fig.suptitle(plot_title, fontsize=16)
+
+    # Mapping the interpretations for use in plotting 
+    state_value_dict = {
+        0 : 'Joint Angle (tail1)',
+        1 : 'Joint Angle (tail_twist)',
+        2 : 'Joint Angle (tail2)',
+        3 : 'Joint Angle (finright_roll)',
+        4 : 'Joint Angle (finright_pitch)',
+        5 : 'Joint Angle (finleft_roll)',
+        6 : 'Joint Angle (finleft_pitch)',
+        7 : 'Upright (z-axes projection)',
+
+        # TODO: Need to verify that these are the corresponding dimensions 
+        8 : 'Target (x)',
+        9 : 'Target (y)',
+        10 : 'Target (z)',
+
+        # TODO: Find what each of these velocity values respectively correspond to. 
+        # From source code, it represents the joint angle velocities (7) and torso 
+        # linear and angular velocities (6)
+        11 : 'Velocity (1)',
+        12 : 'Velocity (2)',
+        13 : 'Velocity (3)',
+        14 : 'Velocity (4)',
+        15 : 'Velocity (5)',
+        16 : 'Velocity (6)',
+        17 : 'Velocity (7)',
+        18 : 'Velocity (8)',
+        19 : 'Velocity (9)',
+        20 : 'Velocity (10)',
+        21 : 'Velocity (11)',
+        22 : 'Velocity (12)',
+        23 : 'Velocity (13)',
+    }
+    
+    for idx in range(num_states):
+        row = idx // num_cols
+        col = idx % num_cols
+        ax = axes[row, col]
+        sns.histplot(state_space_data[:, idx], bins=50, kde=True, ax=ax, color=matplotlib.colormaps['rainbow'](idx/num_states))
+        ax.set_title('State: ' + state_value_dict[idx])
+        ax.set_xlabel('Prediction Error (L1)')
+        ax.set_ylabel('Frequency')
+    
+    # Remove any empty subplots
+    if num_rows * num_cols > num_states:
+        for i in range(num_states, num_rows * num_cols):
+            fig.delaxes(axes.flatten()[i])
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to make room for the main title
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
@@ -305,6 +384,8 @@ if __name__ == "__main__":
                 errors = torch.abs(outputs - states).cpu().numpy()
                 plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", 
                                 filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
+                plot_histograms_seaborn(errors, plot_title="Error Histogram of State-Space Prediction", 
+                                filename=f"{results_directory}/prediction_error_histogram-separated_{current_datetime_str}.png", plots_per_row=6)
 
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
