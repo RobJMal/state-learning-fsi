@@ -398,8 +398,9 @@ if __name__ == "__main__":
         metadata['relative_error_values'].append(rel_err_vals[-1])
 
         plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae, 
-                                rel_err_vals=rel_err_vals,
-                                metrics_plot_filename=f"{results_directory}/pixel2state_model_loss_{current_datetime_str}.png")
+                              val_losses=val_losses, val_mae=val_mae,
+                              rel_err_vals=rel_err_vals,
+                              metrics_plot_filename=f"{results_directory}/pixel2state_model_loss_{current_datetime_str}.png")
 
     # Saving the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
