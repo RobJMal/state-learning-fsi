@@ -47,8 +47,8 @@ def save_data(frames, observations, filename_and_location='dataset/proprio_pixel
     print(f"Data saved to {filename_and_location}")
 
 
-def generate_episode(seed, frames, observations, domain_name="fish", task_name="swim", 
-                     camera_view_height=64, camera_view_width=64, target_frame_dim=(64, 64, 12)):
+def generate_episode(seed, frames, observations, target_frame_dim, domain_name="fish", task_name="swim", 
+                     camera_view_height=64, camera_view_width=64):
     '''
     Runs a full episode of a domain and task to generate data. Note that it takes in 
     a frames and observations array and it appends to that. 
@@ -120,8 +120,8 @@ if __name__ == '__main__':
 
         for seed in tqdm(batch_seeds, total=(len(batch_seeds))):
             print(f"Generating dataset using seed {seed}")
-            generate_episode(seed, frames_dataset, observations_dataset, domain_name, task_name, 
-                                camera_view_height, camera_view_width, FRAME_SIZE)
+            generate_episode(seed, frames_dataset, observations_dataset, FRAME_SIZE, domain_name, task_name, 
+                                camera_view_height, camera_view_width)
 
         frames_dataset_nparray = np.array(frames_dataset)
         observations_dataset_nparray = np.array(observations_dataset)
