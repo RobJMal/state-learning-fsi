@@ -53,7 +53,6 @@ def generate_episode(seed, frames, observations, domain_name="fish", task_name="
     Runs a full episode of a domain and task to generate data. Note that it takes in 
     a frames and observations array and it appends to that. 
     '''
-    print(f"Printing target frame dim {target_frame_dim}")
     random_state = np.random.RandomState(seed)    # Setting the seed
     env = suite.load(domain_name, task_name, task_kwargs={'random': random_state})
 
@@ -96,6 +95,9 @@ if __name__ == '__main__':
     DATASET_DIRECTORY = config['default']['dataset_directory']
     FRAME_SIZE = tuple(config['default']['frame_size'])
 
+    print(f"Generating dataset with {NUM_EPISODES} episodes and {BATCH_SIZE} batch size")
+    print(f"Frame size is {FRAME_SIZE}")
+
     # Ensure the directories exists
     os.makedirs("media", exist_ok=True)
     os.makedirs("dataset", exist_ok=True)
@@ -128,7 +130,7 @@ if __name__ == '__main__':
         print(f"Length of observations_dataset: {len(observations_dataset)}")
         
         dataset_filename = f"proprio_pixel_dataset-{NUM_EPISODES}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
-        dataset_path = os.path.join(dataset_directory, dataset_filename)
+        dataset_path = os.path.join(DATASET_DIRECTORY, dataset_filename)
 
         print("Saving data...")
         save_data(frames_dataset_nparray, observations_dataset_nparray, dataset_path)
