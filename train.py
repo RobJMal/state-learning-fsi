@@ -166,6 +166,10 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
         22 : 'Velocity (12)',
         23 : 'Velocity (13)',
     }
+
+    # Determining global x-axis limits
+    global_min_x = np.min(state_space_data)
+    global_max_x = np.max(state_space_data)
     
     for idx in range(num_states):
         row = idx // num_cols
@@ -175,6 +179,7 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
         ax.set_title('State: ' + state_value_dict[idx])
         ax.set_xlabel('Prediction Error (L1)')
         ax.set_ylabel('Frequency')
+        ax.set_xlim(global_min_x, global_max_x)
     
     # Remove any empty subplots
     if num_rows * num_cols > num_states:
