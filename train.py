@@ -113,7 +113,7 @@ def plot_histogram(data, plot_title, filename):
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
-def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
+def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6, use_global_limits=False):
     '''
     Plots multiple histograms for each state in a single figure using Seaborn.
     '''
@@ -168,9 +168,10 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
     }
 
     # Determining global x-axis limits
-    global_min_x = np.min(state_space_data)
-    global_max_x = np.max(state_space_data)
-    
+    if use_global_limits:
+        global_min_x = np.min(state_space_data)
+        global_max_x = np.max(state_space_data)
+        
     for idx in range(num_states):
         row = idx // num_cols
         col = idx % num_cols
@@ -179,7 +180,8 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6):
         ax.set_title('State: ' + state_value_dict[idx])
         ax.set_xlabel('Prediction Error (L1)')
         ax.set_ylabel('Frequency')
-        ax.set_xlim(global_min_x, global_max_x)
+        if use_global_limits: 
+            ax.set_xlim(global_min_x, global_max_x)
     
     # Remove any empty subplots
     if num_rows * num_cols > num_states:
@@ -388,7 +390,9 @@ if __name__ == "__main__":
                 plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", 
                                 filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
                 plot_histograms_seaborn(errors, plot_title="Error Histogram of State-Space Prediction", 
-                                filename=f"{results_directory}/prediction_error_histogram-separated_{current_datetime_str}.png", plots_per_row=6)
+                                filename=f"{results_directory}/prediction_error_histogram-separated-rel_{current_datetime_str}.png", plots_per_row=6, use_global_limits=False)
+                plot_histograms_seaborn(errors, plot_title="Error Histogram of State-Space Prediction", 
+                                filename=f"{results_directory}/prediction_error_histogram-separated-abs_{current_datetime_str}.png", plots_per_row=6, use_global_limits=True)
 
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
