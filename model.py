@@ -54,7 +54,8 @@ class Pixel2StateNet(nn.Module):
                 ),
                 activation,
             )
-        elif self.observation_shape == (12, 64, 64):
+        # Applies to models of all other shapes (12, 64, 64); (3, 64, 64)
+        else:
             self.encoder_network = nn.Sequential(
                 nn.Conv2d(
                     self.observation_shape[0],
