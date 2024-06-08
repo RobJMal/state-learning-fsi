@@ -63,12 +63,14 @@ def generate_episode(seed, frames, observations, target_frame_dim, domain_name="
         action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
         time_step = env.step(action)
 
-        camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
-        camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
-        camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
-        camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
-
+        camera0, camera1, camera2, camera3 = None, None, None, None
         camera_obs = None
+
+        if domain_name == "fish" and task_name == "swim":
+            camera0 = env.physics.render(camera_id=0, height=camera_view_height, width=camera_view_width)
+            camera1 = env.physics.render(camera_id=1, height=camera_view_height, width=camera_view_width)
+            camera2 = env.physics.render(camera_id=2, height=camera_view_height, width=camera_view_width)
+            camera3 = env.physics.render(camera_id=3, height=camera_view_height, width=camera_view_width)
 
         # Concatentating images in a grid (128, 128, 3)
         if target_frame_dim == (128, 128, 3): 
@@ -80,6 +82,9 @@ def generate_episode(seed, frames, observations, target_frame_dim, domain_name="
         # Source: https://web.archive.org/web/20170517022842/http://ivpl.eecs.northwestern.edu/sites/default/files/07444187.pdf
         elif target_frame_dim == (64, 64, 12):
             camera_obs = np.concatenate((camera0, camera1, camera2, camera3), axis=2)
+
+        elif target_frame_dim == (64, 64, 3):
+            camera_obs = camera0
 
         frames.append(camera_obs)
         observations.append(copy.deepcopy(time_step.observation))
@@ -94,8 +99,10 @@ if __name__ == '__main__':
     BATCH_SIZE = config['default']['batch_size']
     DATASET_DIRECTORY = config['default']['dataset_directory']
     FRAME_SIZE = tuple(config['default']['frame_size'])
+    DOMAIN_NAME = config['default']['domain_name']
+    TASK_NAME = config['default']['task_name']
 
-    print(f"Generating dataset with {NUM_EPISODES} episodes and {BATCH_SIZE} batch size")
+    print(f"Generating dataset with {NUM_EPISODES} episodes and {BATCH_SIZE} batch size for {DOMAIN_NAME} {TASK_NAME} task")
     print(f"Frame size is {FRAME_SIZE}")
 
     # Ensure the directories exists
@@ -103,8 +110,8 @@ if __name__ == '__main__':
     os.makedirs("dataset", exist_ok=True)
     os.makedirs(DATASET_DIRECTORY, exist_ok=True)
 
-    domain_name = "fish"
-    task_name = "swim"
+    domain_name = DOMAIN_NAME
+    task_name = TASK_NAME
     seeds = [i for i in range(NUM_EPISODES)]
     camera_view_height, camera_view_width = 64, 64 
 
@@ -129,7 +136,7 @@ if __name__ == '__main__':
         print(f"Length of frames_dataset: {len(frames_dataset)}")
         print(f"Length of observations_dataset: {len(observations_dataset)}")
         
-        dataset_filename = f"proprio_pixel_dataset-{NUM_EPISODES}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
+        dataset_filename = f"proprio_{DOMAIN_NAME}-{TASK_NAME}_pixel_dataset-{NUM_EPISODES}k-start-{batch_start}-end-{batch_end}_{current_datetime_str}.npz"
         dataset_path = os.path.join(DATASET_DIRECTORY, dataset_filename)
 
         print("Saving data...")
