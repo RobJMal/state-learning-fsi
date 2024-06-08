@@ -5,11 +5,11 @@ training:
   learning_rate: 0.2e-3
   step_size: 20
   gamma: 0.9
-  dataset_directory: "dataset/augmented_camera_view_1"
-  dataset_filename: "proprio_pixel_dataset-50k-start-0-end-50_2024-06-05_10-42-57.npz"
+  dataset_directory: "dataset/fish-swim/camera-0-view/"
+  dataset_filename: "proprio_fish-swim_pixel_dataset-50k-start-0-end-50_2024-06-08_23-44-42.npz"
 
 model:
-  input_size: [12, 64, 64] # Note that channel size should be first dimension; example sizes that are valid: [3, 128, 128]
+  input_size: [3, 64, 64] # Note that channel size should be first dimension; example sizes that are valid: [3, 128, 128]; [12, 64, 64]; [3, 64, 64]
 
 logging:
   results_directory: "results"

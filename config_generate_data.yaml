@@ -1,5 +1,7 @@
 default:
   num_episodes: 100
   batch_size: 100
-  dataset_directory: "dataset/augmented_camera_view_1"
-  frame_size: [64, 64, 12]  # Valid alternative frame sizes: [128, 128, 3]
+  dataset_directory: "dataset/walker-walk/camera-0-view"
+  frame_size: [64, 64, 3]  # Valid alternative frame sizes: [128, 128, 3], [64, 64, 12], [64, 64, 3]
+  domain_name: "walker"
+  task_name: "walk"
