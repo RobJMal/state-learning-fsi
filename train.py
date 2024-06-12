@@ -103,14 +103,14 @@ def plot_histogram(data, plot_title, filename):
         for idx in range(data['state_space'][0].shape[0]):
             plt.hist([x[idx] for x in data['state_space']], bins=50, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/data['state_space'][0].shape[0]), label=f'Index {idx}')
     elif type(data) == np.ndarray:
-        for idx in range(errors.shape[1]):
-                    plt.hist(errors[:,idx], bins=20, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
+        for idx in range(data.shape[1]):
+                    plt.hist(data[:,idx], bins=20, alpha=0.2, color=matplotlib.colormaps['rainbow'](idx/dataset_df['state_space'][0].shape[0]), label=f'Index {idx}')
 
     plt.xlabel(f'State space')
     plt.ylabel('Frequency')
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, -0.5), ncol=4)
     plt.title(plot_title)
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename, bbox_inches='tight', dpi=750)
     plt.close()
 
 def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6, use_global_limits=False):
@@ -189,7 +189,7 @@ def plot_histograms_seaborn(data, plot_title, filename, plots_per_row=6, use_glo
             fig.delaxes(axes.flatten()[i])
     
     plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to make room for the main title
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename, bbox_inches='tight', dpi=750)
     plt.close()
 
 class CustomDataset(torch.utils.data.Dataset):
@@ -336,6 +336,7 @@ if __name__ == "__main__":
     train_losses, val_losses = [], []
     train_mae, val_mae = [], []
     rel_err_vals = []
+    state_space_err_vals = []
 
     for epoch in range(NUM_EPOCHS):
         model.train()
