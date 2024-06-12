@@ -247,6 +247,12 @@ def plot_training_metrics(epoch, metrics_plot_filename, train_losses=[], train_m
     plt.savefig(metrics_plot_filename)
     plt.close()
 
+def save_metrics_as_npz(filename, **metrics):
+    '''
+    Saves the provided metrics to a compressed .npz file.
+    '''
+    np.savez_compressed(filename, **metrics)
+    print(f"Metrics saved to {filename}")
 
 if __name__ == "__main__":
     args = parse_args()
@@ -311,11 +317,6 @@ if __name__ == "__main__":
         'step_size': STEP_SIZE,
         'gamma': GAMMA,
         'input_size': INPUT_SIZE,
-        'training_losses': [],
-        'validation_losses': [],
-        'training_mae': [],
-        'validation_mae': [],
-        'relative_error_values': [],
     }
 
     model = Pixel2StateNet(observation_shape=INPUT_SIZE).to(DEVICE)
@@ -380,44 +381,50 @@ if __name__ == "__main__":
                 rel_err = (torch.abs(outputs - states) / torch.abs(states).max(0)[0]).mean().item() * 100
                 rel_err_vals.append(rel_err)
 
-                # Compute distance error
-                # dist_err = torch.norm(outputs - states, dim=1).mean().item()
-                # rel_dist_err = (torch.norm(outputs - states, dim=1) / torch.norm(states, dim=1)).mean().item()
-
-                # print(f"Distance error: {1e3*dist_err:.4f} mm \t- Relative distance error: {100*rel_dist_err:.2f}%")
-
                 # Plot histogram of state space
-                errors = torch.abs(outputs - states).cpu().numpy()
-                plot_histogram(errors, plot_title="Error Histogram of State-Space Prediction", 
-                                filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
-                plot_histograms_seaborn(errors, plot_title="Error Histogram of State-Space Prediction", 
-                                filename=f"{results_directory}/prediction_error_histogram-separated-rel_{current_datetime_str}.png", plots_per_row=6, use_global_limits=False)
-                plot_histograms_seaborn(errors, plot_title="Error Histogram of State-Space Prediction", 
-                                filename=f"{results_directory}/prediction_error_histogram-separated-abs_{current_datetime_str}.png", plots_per_row=6, use_global_limits=True)
+                state_space_err = torch.abs(outputs - states).cpu().numpy()
+                state_space_err_vals.append(state_space_err)
+
+                # Plotting errors while traning (enables live visualization, but slow)
+                # plot_histogram(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                #                 filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
+                # plot_histograms_seaborn(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                #                 filename=f"{results_directory}/prediction_error_histogram-separated-rel_{current_datetime_str}.png", plots_per_row=6, use_global_limits=False)
+                # plot_histograms_seaborn(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                #                 filename=f"{results_directory}/prediction_error_histogram-separated-abs_{current_datetime_str}.png", plots_per_row=6, use_global_limits=True)
 
         val_losses.append(epoch_loss_val / len(test_loader.dataset))
         val_mae.append(epoch_mae_val / len(test_loader))
 
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} with LR {scheduler.get_last_lr()[0]:.2e}, Training Loss: {train_losses[-1]:.4e}, Validation Loss: {val_losses[-1]:.4e}, Training MAE: {train_mae[-1]:.2e}, Validation MAE: {val_mae[-1]:.2e}, Relative error: {rel_err:.4f}%")
 
-        # Update metadata
-        metadata['training_losses'].append(train_losses[-1])
-        metadata['validation_losses'].append(val_losses[-1])
-        metadata['training_mae'].append(train_mae[-1])
-        metadata['validation_mae'].append(val_mae[-1])
-        metadata['relative_error_values'].append(rel_err_vals[-1])
-
         plot_training_metrics(epoch, train_losses=train_losses, train_mae=train_mae, 
                               val_losses=val_losses, val_mae=val_mae,
                               rel_err_vals=rel_err_vals,
                               metrics_plot_filename=f"{results_directory}/pixel2state_model_loss_{current_datetime_str}.png")
+    
+    # Plotting when training is finished (reduces time for training)
+    plot_histogram(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                    filename=f"{results_directory}/prediction_error_histogram_{current_datetime_str}.png")
+    plot_histograms_seaborn(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                    filename=f"{results_directory}/prediction_error_histogram-separated-rel_{current_datetime_str}.png", plots_per_row=6, use_global_limits=False)
+    plot_histograms_seaborn(state_space_err, plot_title="Error Histogram of State-Space Prediction", 
+                    filename=f"{results_directory}/prediction_error_histogram-separated-abs_{current_datetime_str}.png", plots_per_row=6, use_global_limits=True)
 
     # Saving the model
     model_filename = f"pixel2statenet_model_weights_{current_datetime_str}.pth"
     model_path = os.path.join(results_directory, model_filename)
     torch.save(model.state_dict(), model_path)
 
+    # Saving the metadata 
     metadata_filename = f"training_metadata_{current_datetime_str}.json"
     metadata_path = os.path.join(results_directory, metadata_filename)
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=4)
+
+    # Saving the training metrics data 
+    metrics_filename = f"training_metrics_{current_datetime_str}.npz"
+    metrics_path = os.path.join(results_directory, metrics_filename)
+    save_metrics_as_npz(metrics_path, training_losses=train_losses, validation_losses=val_losses,
+                        training_mae=train_mae, validation_mae=val_mae, 
+                        relative_error_values=rel_err_vals, state_space_error_values=state_space_err_vals)
